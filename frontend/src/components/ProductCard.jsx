@@ -1,97 +1,114 @@
 import React, { useState } from 'react';
-import ColorPicker from './ColorPicker';// tek bir ürünü gösteren kart
 
-function ProductCard({ urun }) {// içinde resim, isim, fiyat, renk seçici ve yıldızlar var
-  
-  const [secilenRenk, setSecilenRenk] = useState('yellow'); //başlangıca yellow gold u seçili koydum
-  
-  
-  const [gorselYukleniyor, setGorselYukleniyor] = useState(true);// görsel yüklenirken bekletme
- 
-  const yildizlariCiz = (puan) => {
-    const yildizlar = []; // 4.4 gelirse 4 dolu 1 boş yıldız çizecek
-    const doluYildiz = Math.floor(puan); //4.3 -> 4
-    
-    // 5 yıldız çiz
-    for (let i = 0; i < 5; i++) {
-      if (i < doluYildiz) {
-        yildizlar.push(
-          <span key={i} className="text-yellow-500 text-base">★</span>
-        );
-      } else {// boş yıldız
-        yildizlar.push(
-          <span key={i} className="text-gray-300 text-base">★</span>
-        );
-      }
-    }
-    
-    return yildizlar;
-  };
+function ProductCard({ urun }) {
+  const [renk, setRenk] = useState('yellow');//başlangıç rengi
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 mx-2 hover:shadow-lg transition-shadow">
+    <div style={{ 
+      background: 'white', 
+      borderRadius: '10px', 
+      padding: '15px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }}>
       
-      {/* ürün görseli bölümü */}
-      <div className="relative aspect-square mb-3 bg-gray-100 rounded-lg overflow-hidden">
-        
-        {/* görsel yüklenene kadar spinner */}
-        {gorselYukleniyor && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="spinner"></div>
-          </div>
-        )}
-        
-        {/* ürün resmi seçilen renge göre değişiyor */}
-        <img
-          src={urun.images[secilenRenk]}
-          alt={urun.name}
-          className={`w-full h-full object-cover transition-opacity duration-300 
-            ${gorselYukleniyor ? 'opacity-0' : 'opacity-100'}`}
-          onLoad={() => {
-            console.log('Görsel yüklendi:', urun.name, secilenRenk);
-            setGorselYukleniyor(false);
-          }}
-          onError={() => {
-            console.error('Görsel yüklenemedi:', urun.images[secilenRenk]);
-            setGorselYukleniyor(false);
+      <img //resim seçilen renge göre değişiyo
+        src={urun.images[renk]}
+        alt={urun.name}
+        style={{ 
+          width: '100%',
+          height: 'auto',
+          borderRadius: '8px',
+          marginBottom: '12px',
+          display: 'block'
+        }}
+      />
+      
+      <h3 style={{   //ürün ismi fotoda verilene göre Montserrat-Medium-15px 
+        fontFamily: 'Montserrat, sans-serif',
+        fontWeight: 500,
+        fontSize: '15px',
+        color: '#1f2937',
+        marginBottom: '6px'
+      }}>
+        {urun.name}
+      </h3>
+      
+      <p style={{  //fiyat, Montserrat-Regular-15px
+        fontFamily: 'Montserrat, sans-serif',
+        fontWeight: 400,
+        fontSize: '15px',
+        color: '#111827',
+        marginBottom: '10px'
+      }}>
+        ${urun.price.toFixed(2)} USD
+      </p>
+      
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '10px' }}>
+        <button // renk butonları
+          onClick={() => setRenk('yellow')}
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%', // yuvarlak yapiyo
+            border: renk === 'yellow' ? '3px solid #374151' : '2px solid #d1d5db',
+            background: '#E6CA97',
+            cursor: 'pointer',
+            padding: 0
           }}
         />
-      </div>
-      
-      {/* ürün bilgileri */}
-      <div className="space-y-2">
-        
-        {/* ürün ismi - avenir book 14px (tasarımdan) */}
-        <h3 className="product-title text-gray-800">
-          {urun.name}
-        </h3>
-        
-        {/* fiyat - avenir book 12px */}
-        <p className="product-price text-gray-900">
-          ${urun.price.toFixed(2)} USD
-        </p>
-        
-        {/* renk seçici component i */}
-        <ColorPicker
-          renkler={urun.images}
-          secilenRenk={secilenRenk}
-          renkDegistir={(yeniRenk) => {
-            setSecilenRenk(yeniRenk);
-            setGorselYukleniyor(true); //yeni görseli yüklerken spinner göster
+        <button
+          onClick={() => setRenk('white')}
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            border: renk === 'white' ? '3px solid #374151' : '2px solid #d1d5db',
+            background: '#D9D9D9',
+            cursor: 'pointer',
+            padding: 0
           }}
         />
-        
-        {/* yıldızlar ve puan - montserrat medium 15px */}
-        <div className="flex items-center gap-1 pt-1">
-          <div className="flex">
-            {yildizlariCiz(urun.popularityRating)}
-          </div>
-          <span className="rating-text text-gray-700 ml-1">
-            {urun.popularityRating.toFixed(1)}/5
-          </span>
-        </div>
-        
+        <button
+          onClick={() => setRenk('rose')}
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            border: renk === 'rose' ? '3px solid #374151' : '2px solid #d1d5db',
+            background: '#E1A4A9',
+            cursor: 'pointer',
+            padding: 0
+          }}
+        />
+        <span style={{ //seçili rengin ismini gösteriyo  Avenir-Book-12px
+          fontFamily: 'Avenir, sans-serif',
+          fontSize: '12px',
+          color: '#374151',
+          marginLeft: '4px'
+        }}>
+          {renk === 'yellow' && 'Yellow Gold'}
+          {renk === 'white' && 'White Gold'}
+          {renk === 'rose' && 'Rose Gold'}
+        </span>
       </div>
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        {[...Array(5)].map((_, i) => ( //yıldız ve puan
+          <span key={i} style={{ 
+            color: i < Math.floor(urun.popularityRating) ? '#fbbf24' : '#d1d5db',
+            fontSize: '14px'
+          }}>★</span>
+        ))}
+        <span style={{ //puan yazısı Avenir-Book-14px
+          fontFamily: 'Avenir, sans-serif',
+          fontSize: '14px',
+          color: '#374151',
+          marginLeft: '4px'
+        }}>
+          {urun.popularityRating.toFixed(1)}/5
+        </span>
+      </div>
+      
     </div>
   );
 }
