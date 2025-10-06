@@ -5,7 +5,7 @@ const path = require('path');
 const axios = require('axios');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 
@@ -17,12 +17,12 @@ async function altinFiyatGetir() {
   const simdi = Date.now();
   const onDakika = 10 * 60 * 1000;
   
- 
-  if (altinCache && cacheSaat && (simdi - cacheSaat < onDakika)) { // cache varsa ve yeniyse(max 10 dk) onu kullan
+ /* cache varsa ve yeniyse(max 10 dk) onu kullan*/
+  if (altinCache && cacheSaat && (simdi - cacheSaat < onDakika)) { 
     return altinCache;
   }
-
-  try { // gold api dene
+/* gold api dene*/
+  try { 
     const res = await axios.get('https://www.goldapi.io/api/XAU/USD', {
       headers: { 'x-access-token': 'goldapi-1ha616smgdrhhqd-io' }
     });
@@ -36,8 +36,8 @@ async function altinFiyatGetir() {
     console.log('goldapi çalışmadı');
   }
 
- 
-  try { // diğer api olmazsa bunu dene
+ /* diğer api olmazsa bunu dene*/
+  try { 
     const res = await axios.get('https://api.metalpriceapi.com/v1/latest', {
       params: {
         api_key: '82d720a2d4fc714ddd48802d065acb50',
@@ -59,11 +59,11 @@ async function altinFiyatGetir() {
     console.log('metalprice çalışmadı');
   }
   
-  // ikisi de olmazsa sabiti getir
   return 124.96;
-}
+}/* ikisi de olmazsa sabiti getir
 
-app.get('/api/products', async (req, res) => {//ürünler ve bilgileri
+ ürünler ve bilgileri*/
+app.get('/api/products', async (req, res) => {
   try {
     const dosya = path.join(__dirname, 'data', 'products.json');
     const icerik = fs.readFileSync(dosya, 'utf8');
@@ -80,8 +80,8 @@ app.get('/api/products', async (req, res) => {//ürünler ve bilgileri
         popularityScore: u.popularityScore,
         weight: u.weight,
         images: u.images,
-        price: parseFloat(fiyat.toFixed(2)),//tofixed virgülden sonraki 2 basamak alıp stringe çeviriyo
-        popularityRating: parseFloat(puan.toFixed(1)),// parsefloat içine string yazılır çevirir
+        price: parseFloat(fiyat.toFixed(2)),/*tofixed virgülden sonraki 2 basamak alıp stringe çeviriyo*/
+        popularityRating: parseFloat(puan.toFixed(1)),
         goldPriceUsed: altinFiyat
       };
     });
@@ -102,7 +102,7 @@ app.get('/api/products', async (req, res) => {//ürünler ve bilgileri
   }
 });
 
-app.get('/api/health', (req, res) => {// kontrol
+app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Backend çalışıyor'
