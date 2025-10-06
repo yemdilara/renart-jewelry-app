@@ -46,7 +46,6 @@ body {
   font-size: 14px;
   color: #374151;
 }
-// loading çarkı
 .spinner { 
   width: 40px;
   height: 40px;
@@ -98,7 +97,6 @@ body {
 .slick-dots li.slick-active button:before {
   color: #333;
 }
-//mobil için oklar içerde
 @media (max-width: 768px) { 
   .slick-prev { left: 10px !important; }
   .slick-next { right: 10px !important; }
