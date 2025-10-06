@@ -7,143 +7,108 @@ const axios = require('axios');
 const app = express();
 const PORT = 5000;
 
-app.use(cors());//cors açık olmalı yoksa frontend bağlanamıyor
+app.use(cors());
 
-let altinFiyatiCache = null;//altın fiyatını cache liyoruz her istekte api ye gitmemek için
-let sonGuncellemeSaati = null;
+let altinCache = null;
+let cacheSaat = null;
 
-async function getAltinFiyati() {
+async function altinFiyatGetir() {
   
   const simdi = Date.now();
-  const onDakika = 10 * 60 * 1000;// cache deki veri 10 dakikadan yeniyse cacheden dön
+  const onDakika = 10 * 60 * 1000;
   
-  if (altinFiyatiCache && sonGuncellemeSaati && (simdi - sonGuncellemeSaati < onDakika)) {
-    console.log('Cache\'den alındı:', altinFiyatiCache);
-    return altinFiyatiCache;
+ 
+  if (altinCache && cacheSaat && (simdi - cacheSaat < onDakika)) { // cache varsa ve yeniyse(max 10 dk) onu kullan
+    return altinCache;
   }
 
-  try {
-    console.log('GoldAPI deneniyor...');// bu api direkt gram fiyatı veriyor
-    
-    const cevap = await axios.get('https://www.goldapi.io/api/XAU/USD', {
-      headers: {
-        'x-access-token': 'goldapi-1ha616smgdrhhqd-io'
-      }
+  try { // gold api dene
+    const res = await axios.get('https://www.goldapi.io/api/XAU/USD', {
+      headers: { 'x-access-token': 'goldapi-1ha616smgdrhhqd-io' }
     });
     
-    
-    if (cevap.data && cevap.data.price_gram_24k) {
-      const gramFiyati = cevap.data.price_gram_24k;
-      altinFiyatiCache = gramFiyati; // cache e kaydet
-      sonGuncellemeSaati = Date.now();
-      
-      console.log('GoldAPI başarılı:', gramFiyati.toFixed(2), 'USD/gram');
-      return gramFiyati;
+    if (res.data && res.data.price_gram_24k) {
+      altinCache = res.data.price_gram_24k;
+      cacheSaat = Date.now();
+      return altinCache;
     }
-    
-  } catch (hata) {
-    console.log('GoldAPI da çalışmadı:', hata.message);
+  } catch (err) {
+    console.log('goldapi çalışmadı');
   }
 
-  
-  try {// o çalışmazsa bu api yi dener
-    console.log('MetalPriceAPI deneniyor...');
-    
-    const cevap = await axios.get('https://api.metalpriceapi.com/v1/latest', 
-        {
+ 
+  try { // diğer api olmazsa bunu dene
+    const res = await axios.get('https://api.metalpriceapi.com/v1/latest', {
       params: {
         api_key: '82d720a2d4fc714ddd48802d065acb50',
-        base: 'USD',  //bu api nin base i usd olduğu için 1/sonuç diyeceğiz
-        currencies: 'XAU' //ons
+        base: 'USD',
+        currencies: 'XAU'
       }
     });
     
-    if (cevap.data && cevap.data.rates && cevap.data.rates.XAU) {
-       const xauPerUsd = cevap.data.rates.XAU;  //usd ons cinsinden
-       const usdPerOunce = 1 / xauPerUsd; // ters çevirdik
-       const usdPerGram = usdPerOunce / 31.1034768; // grama çevirdik
+    if (res.data && res.data.rates && res.data.rates.XAU) {
+      const xauPerUsd = res.data.rates.XAU;
+      const usdPerOns = 1 / xauPerUsd;
+      const usdPerGram = usdPerOns / 31.1034768;
       
-      console.log('Hesaplama adımları:');
-      console.log(' - XAU per USD:', xauPerUsd);
-      console.log(' - USD per ounce:', usdPerOunce.toFixed(2));
-      console.log(' - USD per gram:', usdPerGram.toFixed(2));
-      
-      
-      altinFiyatiCache = usdPerGram; //cache e kayıt
-      sonGuncellemeSaati = Date.now();
-      
-      console.log('✅ MetalPriceAPI başarılı:', usdPerGram.toFixed(2), 'USD/gram');
-      return usdPerGram;
+      altinCache = usdPerGram;
+      cacheSaat = Date.now();
+      return altinCache;
     }
-
-  } catch (hata) {
-    console.log('MetalPriceAPI çalışmadı:', hata.message);
+  } catch (err) {
+    console.log('metalprice çalışmadı');
   }
   
-  
-  console.log('API\'ler çalışmıyor, varsayılan $124.96/gram kullanılıyor');
-  return 124.96;//ikisi de olmazsa sabiti kullanıcak
+  // ikisi de olmazsa sabiti getir
+  return 124.96;
 }
 
-app.get('/api/products', async (req, res) => { //ana endpoint 
-  
-  try { // hazır verilen json dosyasını okuyo
-    const dosyaYolu = path.join(__dirname, 'data', 'products.json');
-    const dosyaIcerigi = fs.readFileSync(dosyaYolu, 'utf8');
-    let urunler = JSON.parse(dosyaIcerigi);
+app.get('/api/products', async (req, res) => {//ürünler ve bilgileri
+  try {
+    const dosya = path.join(__dirname, 'data', 'products.json');
+    const icerik = fs.readFileSync(dosya, 'utf8');
+    let urunler = JSON.parse(icerik);
     
-    console.log('JSON okundu, ürün sayısı:', urunler.length);
+    const altinFiyat = await altinFiyatGetir();
     
-    const altinFiyati = await getAltinFiyati();//anlık altın fiyatı çekilecek
-    
-    
-    urunler = urunler.map(urun => {//her ürün için fiyat-puan hesabı
-
-      const hesaplananFiyat = (urun.popularityScore + 1) * urun.weight * altinFiyati; //+1 in sebebi sonuç 0 gelmesin diye
-      const popularitePuani = urun.popularityScore * 5; //popülerlik puanı 5 üzerinden 
+    urunler = urunler.map(u => {
+      const fiyat = (u.popularityScore + 1) * u.weight * altinFiyat;
+      const puan = u.popularityScore * 5;
       
       return {
-        name: urun.name, // yeni fieldları ekledik
-        popularityScore: urun.popularityScore,
-        weight: urun.weight,
-        images: urun.images,
-        
-        price: parseFloat(hesaplananFiyat.toFixed(2)), //tofixed virgülden sonra 2 basamak al, parsefloat(string) res döndür
-        popularityRating: parseFloat(popularitePuani.toFixed(1)),
-        goldPriceUsed: altinFiyati 
+        name: u.name,
+        popularityScore: u.popularityScore,
+        weight: u.weight,
+        images: u.images,
+        price: parseFloat(fiyat.toFixed(2)),//tofixed virgülden sonraki 2 basamak alıp stringe çeviriyo
+        popularityRating: parseFloat(puan.toFixed(1)),// parsefloat içine string yazılır çevirir
+        goldPriceUsed: altinFiyat
       };
     });
 
-    res.json({ 
+    res.json({
       success: true,
-      goldPrice: parseFloat(altinFiyati.toFixed(2)),
+      goldPrice: parseFloat(altinFiyat.toFixed(2)),
       count: urunler.length,
       products: urunler
     });
     
-  } catch (hata) {
-    console.error('Hata oluştu:', hata);
+  } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'Bir şeyler ters gitti',
-      error: hata.message
+      message: 'Hata oluştu',
+      error: err.message
     });
   }
 });
 
-app.get('/api/health', (req, res) => { // backend kontrol
+app.get('/api/health', (req, res) => {// kontrol
   res.json({
     status: 'OK',
-    message: 'Backend çalışıyor',
-    zaman: new Date().toISOString()
+    message: 'Backend çalışıyor'
   });
 });
 
-
 app.listen(PORT, () => {
-  console.log('===================================');
-  console.log('Server çalışıyor!');
-  console.log('URL: http://localhost:' + PORT);
-  console.log('Endpoint: http://localhost:' + PORT + '/api/products');
-  console.log('===================================');
+  console.log('Server çalışıyor: http://localhost:' + PORT);
 });

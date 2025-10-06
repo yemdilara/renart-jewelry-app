@@ -1,9 +1,9 @@
-import React from 'react';
-import ProductList from './components/ProductList';// productlist i çağırıyo
+import React from 'react';// ana app dosyası
+import ProductList from './components/ProductList';
 
 function App() {
   return (
-    <div className="App min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       <ProductList />
     </div>
   );
